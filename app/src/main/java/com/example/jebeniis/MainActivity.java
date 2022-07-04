@@ -1,12 +1,14 @@
 package com.example.jebeniis;
 
 import android.os.Bundle;
+import android.widget.EditText;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -14,10 +16,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 
 public final class MainActivity extends AppCompatActivity {
     RecyclerView recyclerView;
     Adapter adapter;
+    EditText searchBox;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -25,8 +30,38 @@ public final class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         HashMap<String, String> questions = getQuestions();
+        ArrayList<String> keyList = new ArrayList<>(questions.keySet());
 
-        adapter = new Adapter(this, new ArrayList<String>(questions.keySet()), questions);
+        searchBox = findViewById(R.id.searchBox);
+        searchBox.setOnEditorActionListener((v, actionId, event) -> {
+            String search = searchBox.getText().toString();
+            List<FilterItem> filteredKeys = new ArrayList<>();
+
+            for (String key : keyList) {
+                key = key.toLowerCase();
+                Integer minLev = 10000;
+                String[] words = key.split(" ");
+                for (String word : words) {
+                    int lev = StringUtils.getLevenshteinDistance(word, search);
+                    if (lev < minLev) {
+                        minLev = lev;
+                    }
+                }
+                if (minLev < 8) {
+                    filteredKeys.add(new FilterItem(key, minLev));
+                }
+            }
+
+            filteredKeys.sort((o1, o2) -> o1.lev - o2.lev);
+            keyList.removeIf(key -> true);
+            for (FilterItem item : filteredKeys) {
+                keyList.add(item.key);
+            }
+            adapter.notifyDataSetChanged();
+            return true;
+        });
+
+        adapter = new Adapter(this, keyList, questions);
 
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -42,6 +77,7 @@ public final class MainActivity extends AppCompatActivity {
             jsonObject.keys().forEachRemaining(key -> {
                 try {
                     String value = jsonObject.getString(key);
+                    key = key.toLowerCase();
                     questions.put(key, value);
                 } catch (JSONException e) {
                     e.printStackTrace();
