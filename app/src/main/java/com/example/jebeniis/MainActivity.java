@@ -1,12 +1,12 @@
 package com.example.jebeniis;
 
 import android.os.Bundle;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -16,13 +16,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public final class MainActivity extends AppCompatActivity {
+    RecyclerView recyclerView;
+    Adapter adapter;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         HashMap<String, String> questions = getQuestions();
-        System.out.println(questions);
+
+        adapter = new Adapter(this, new ArrayList<String>(questions.keySet()), questions);
+
+        recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(adapter);
+        adapter.notifyDataSetChanged();
     }
 
     public HashMap<String, String> getQuestions() {
